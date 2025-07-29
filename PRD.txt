@@ -1,0 +1,475 @@
+# Product Requirements Document: Clinic Scheduling System
+
+## 1. Project Overview
+
+### 1.1 Purpose
+Develop a web-based clinic scheduling system that automatically assigns medical personnel (R1-R4) to various clinic shifts using genetic algorithm based on complex constraints and rotation units.
+
+### 1.2 Technology Stack
+- **Backend**: Python 3.8+ with Flask
+- **Frontend**: HTML/CSS/JavaScript + Bootstrap 5
+- **Algorithm**: Genetic Algorithm (GA)
+- **Data Storage**: CSV files (no database)
+- **Deployment**: Local development, later deployment to Render
+
+## 2. Project Structure
+
+```
+clinic-scheduler/
+├── app.py                  # Main Flask application
+├── requirements.txt        # Python dependencies
+├── README.md              # Project documentation
+├── .gitignore             # Git ignore file
+├── config/
+│   ├── __init__.py
+│   └── settings.py        # Configuration settings
+├── modules/
+│   ├── __init__.py
+│   ├── genetic_scheduler.py  # Genetic algorithm implementation
+│   ├── validators.py      # Input validation logic
+│   ├── data_handler.py    # CSV processing utilities
+│   └── export_handler.py  # Multiple CSV format exports
+├── static/
+│   ├── css/
+│   │   └── style.css      # Custom styles
+│   ├── js/
+│   │   └── main.js        # Frontend logic
+│   └── img/               # Images if needed
+├── templates/
+│   ├── base.html          # Base template
+│   ├── index.html         # Main scheduling interface
+│   └── results.html       # Schedule display page
+├── data/
+│   ├── rules.json         # Scheduling rules configuration
+│   └── temp/              # Temporary CSV storage
+└── tests/
+    ├── __init__.py
+    └── test_scheduler.py  # Unit tests
+```
+
+## 3. Dependencies (requirements.txt)
+
+```
+Flask==2.3.2
+pandas==2.0.3
+numpy==1.24.3
+gunicorn==21.2.0
+pytest==7.4.3
+pytest-cov==4.1.0
+zipfile36==0.1.3
+```
+
+## 4. Development Setup
+
+### 4.1 Environment Setup
+```bash
+# Clone repository
+git clone <repository-url>
+cd clinic-scheduler
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 4.2 Local Development
+```bash
+# Set Flask environment variables
+export FLASK_APP=app.py
+export FLASK_ENV=development
+
+# Run application
+flask run
+# Application will be available at http://localhost:5000
+```
+
+## 5. Feature Specifications
+
+### 5.1 User Interface Components
+
+#### 5.1.1 Dynamic Personnel Count Control
+**Location**: Top of main interface before personnel input forms
+
+**UI Design**:
+```
+┌─────────────────────────────────────────────────────────┐
+│ 人員配置設定                                              │
+│ R1: [5] [-][+]  R2: [6] [-][+]  R3: [4] [-][+]  R4: [6] [-][+] │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Specifications**:
+- Default values: R1=5, R2=6, R3=4, R4=6
+- Range: Minimum 1, Maximum 10 per level
+- Real-time form update when count changes
+- New personnel auto-named: R1_F, R1_G, etc.
+- Removal starts from last added personnel
+- Data preservation when reducing/increasing counts
+
+**Implementation**:
+```javascript
+const personnelConfig = {
+    R1: { default: 5, min: 1, max: 10, current: 5 },
+    R2: { default: 6, min: 1, max: 10, current: 6 },
+    R3: { default: 4, min: 1, max: 10, current: 4 },
+    R4: { default: 6, min: 1, max: 10, current: 6 }
+};
+
+function adjustPersonnelCount(level, delta) {
+    const config = personnelConfig[level];
+    const newCount = Math.max(config.min, Math.min(config.max, config.current + delta));
+    
+    if (newCount !== config.current) {
+        updatePersonnelForms(level, config.current, newCount);
+        config.current = newCount;
+        updateGAParameters();
+    }
+}
+```
+
+#### 5.1.2 Personnel Input Form
+- **R1 Personnel (Dynamic count, default 5)**: Labeled as R1_A through R1_[X]
+  - Dropdown: Rotation units (內科病房, 健康, 急診, 兒科病房, 精神1, 社區1, 婦產病房, 放射)
+  - Checkbox: Health check support needed
+  
+- **R2 Personnel (Dynamic count, default 6)**: Labeled as R2_A through R2_[X]
+  - Dropdown: Rotation units (婦產門診, 內科病房, 兒科門診, 外科病房, 社區2, 眼科門診, 皮膚門診, 神內門診, 復健門診, ENT門診, 精神2, 家庭醫業)
+  - Checkbox: Health check support needed
+
+- **R3 Personnel (Dynamic count, default 4)**: Labeled as R3_A through R3_[X]
+  - Dropdown: Rotation units (CR, 斗六1, 神內門診, 泌尿門診, 糖尿病衛教, 安寧1, 老醫門診, 安寧2, 內科門診, 放射)
+  - Checkbox: Health check support needed
+
+- **R4 Personnel (Dynamic count, default 6)**: Labeled as R4_A through R4_[X]
+  - Dropdown: Rotation units (睡眠門診, 旅遊門診, 骨鬆門診, 減重門診, 疼痛科, 斗六2, 其他)
+  - Checkbox 1: Health check support needed
+  - Checkbox 2: Teaching duties on Tuesday (no clinic assignments)
+
+#### 5.1.3 Action Buttons
+- **Generate Schedule**: Validates all inputs and runs genetic algorithm
+- **Reset Form**: Clears all selections
+- **Download Options** (visible after successful generation):
+  - Basic Schedule CSV
+  - Personal View CSV
+  - Statistics Report CSV
+  - Download All (ZIP)
+
+#### 5.1.4 Real-time Validation
+- Highlight conflicts when same person is assigned multiple conflicting rotations
+- Show warning messages for potential scheduling difficulties
+- Disable submit button if required fields are empty
+- Update GA parameters based on total personnel count
+
+### 5.2 Genetic Algorithm Implementation (modules/genetic_scheduler.py)
+
+#### 5.2.1 Algorithm Overview
+```python
+import numpy as np
+import random
+from typing import List, Dict, Tuple
+
+class GeneticScheduler:
+    def __init__(self, personnel_data, rules, population_size=None, generations=1000):
+        self.personnel_data = personnel_data
+        self.rules = rules
+        # Dynamically adjust population size based on problem complexity
+        self.population_size = population_size or self.calculate_population_size()
+        self.generations = generations
+        self.elite_size = int(self.population_size * 0.1)
+        self.mutation_rate = 0.15
+        self.crossover_rate = 0.8
+        
+    def calculate_population_size(self):
+        """Calculate optimal population size based on personnel count"""
+        total_personnel = sum(len(level) for level in self.personnel_data.values())
+        base_size = 500
+        # Increase population for more complex problems
+        complexity_factor = total_personnel / 21  # 21 is default total
+        return int(base_size * max(1.0, complexity_factor ** 1.5))
+        
+    def initialize_population(self):
+        """Create initial population with R1-focused strategy"""
+        population = []
+        
+        # Generate chromosomes prioritizing R1 assignments
+        for _ in range(self.population_size):
+            chromosome = self.create_r1_focused_chromosome()
+            population.append(chromosome)
+            
+        return population
+```
+
+[Rest of genetic algorithm implementation remains the same...]
+
+### 5.3 Data Flow
+
+1. **Input Collection**: 
+   - User adjusts personnel counts if needed
+   - User fills form → JavaScript validates in real-time
+2. **Submission**: Form data sent to Flask backend via AJAX
+3. **Processing**: 
+   - Backend validates input completeness
+   - GA parameters adjusted based on personnel count
+   - Genetic algorithm initializes population with R1-focused strategy
+   - Evolution process runs until solution found or max generations reached
+4. **Result Handling**:
+   - Success: Generate multiple CSV formats and display schedule
+   - Failure: Return detailed error messages about unsatisfied constraints
+
+### 5.4 Algorithm Configuration
+
+```python
+# Configuration parameters for genetic algorithm
+def get_ga_config(personnel_count):
+    """Dynamic GA configuration based on problem size"""
+    base_config = {
+        "population_size": 500,
+        "max_generations": 1000,
+        "elite_percentage": 0.1,
+        "mutation_rate": 0.15,
+        "crossover_rate": 0.8,
+        "tournament_size": 5,
+        "convergence_threshold": 50,
+        "parallel_populations": 3,
+        "migration_interval": 20,
+        "migration_size": 5
+    }
+    
+    # Adjust for problem complexity
+    if personnel_count > 21:
+        complexity_ratio = personnel_count / 21
+        base_config["population_size"] = int(500 * complexity_ratio ** 1.5)
+        base_config["max_generations"] = int(1000 * complexity_ratio)
+        
+    return base_config
+```
+
+### 5.5 Error Handling
+
+[Previous error handling content remains the same...]
+
+### 5.6 CSV Output Formats
+
+#### 5.6.1 Basic Schedule Format (原始排班表)
+```csv
+Week,Day,Time,4201,4202,4203,4204,4205,4207,4208,4209,4213,4218,體檢1,體檢2
+W1,Monday,Morning,R2_A,,R3_B,,,,,R4_C,,R1_D,R1_A,R2_B
+W1,Monday,Afternoon,R3_A,R4_B,R2_C,R1_B,,R3_C,R4_D,,,,,R2_D
+...
+```
+
+#### 5.6.2 Personal View Format (個人排班表)
+```csv
+人員,級別,輪訓單位,W1上午,W1下午,W2上午,W2下午,W3上午,W3下午,W4上午,W4下午,W5上午,W5下午,門診總數,體檢總數
+R1_A,R1,健康,體檢1,4204,體檢1,體檢1,體檢1,體檢1,-,體檢1,體檢1,體檢1,1,8
+R2_B,R2,內科病房,4201,-,體檢2,-,-,4203,-,-,-,-,2,1
+R3_C,R3,神內門診,-,4208,4207,-,4213,-,-,4208,-,-,3,0
+...
+```
+
+#### 5.6.3 Statistics Report Format (統計報表)
+```csv
+統計項目,數值
+總人員數,21
+R1人員數,5
+R2人員數,6
+R3人員數,4
+R4人員數,6
+總門診時段,75
+已分配時段,75
+體檢覆蓋率,100%
+平均每人門診數,2.5
+最多門診人員,R3_A (3)
+最少門診人員,R1_B (1)
+```
+
+#### 5.6.4 Export Handler Implementation
+```python
+# modules/export_handler.py
+import pandas as pd
+import zipfile
+from datetime import datetime
+
+class ExportHandler:
+    def __init__(self, schedule_data, personnel_data):
+        self.schedule = schedule_data
+        self.personnel = personnel_data
+        
+    def generate_basic_csv(self):
+        """Generate traditional week-based schedule view"""
+        pass
+        
+    def generate_personal_csv(self):
+        """Generate person-centric schedule view"""
+        pass
+        
+    def generate_statistics_csv(self):
+        """Generate statistics and summary report"""
+        pass
+        
+    def generate_zip_bundle(self):
+        """Create ZIP file with all formats"""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"clinic_schedule_{timestamp}.zip"
+        
+        with zipfile.ZipFile(filename, 'w') as zipf:
+            zipf.writestr("basic_schedule.csv", self.generate_basic_csv())
+            zipf.writestr("personal_schedule.csv", self.generate_personal_csv())
+            zipf.writestr("statistics.csv", self.generate_statistics_csv())
+            
+        return filename
+```
+
+## 6. API Endpoints
+
+### 6.1 Routes
+- `GET /` - Main scheduling interface
+- `POST /api/schedule` - Generate schedule using genetic algorithm
+  - Request: JSON with personnel assignments and counts
+  - Response: Success with multiple CSV formats or error with details
+- `GET /api/download/<format>/<filename>` - Download specific CSV format
+  - Formats: basic, personal, statistics, zip
+- `POST /api/validate` - Real-time validation endpoint
+- `GET /api/progress/<task_id>` - Check genetic algorithm progress
+- `POST /api/personnel/update` - Update personnel count dynamically
+
+### 6.2 Rules Configuration (data/rules.json)
+[Previous rules configuration remains the same, with addition of dynamic personnel handling...]
+
+## 7. Frontend Implementation Details
+
+### 7.1 index.html Structure
+```html
+<!-- Personnel count controls -->
+<div class="personnel-controls mb-4">
+    <h5>人員配置設定</h5>
+    <div class="row">
+        <div class="col-3">
+            <label>R1:</label>
+            <div class="btn-group">
+                <span class="count-display" id="r1-count">5</span>
+                <button class="btn btn-sm btn-secondary" onclick="adjustCount('R1', -1)">-</button>
+                <button class="btn btn-sm btn-secondary" onclick="adjustCount('R1', 1)">+</button>
+            </div>
+        </div>
+        <!-- Similar controls for R2, R3, R4 -->
+    </div>
+</div>
+
+<!-- Download options (shown after successful generation) -->
+<div class="download-section" style="display:none;">
+    <h5>下載選項</h5>
+    <div class="btn-group">
+        <button class="btn btn-primary" onclick="downloadCSV('basic')">
+            <i class="fas fa-download"></i> 基本排班表
+        </button>
+        <button class="btn btn-info" onclick="downloadCSV('personal')">
+            <i class="fas fa-user"></i> 個人排班表
+        </button>
+        <button class="btn btn-success" onclick="downloadCSV('statistics')">
+            <i class="fas fa-chart-bar"></i> 統計報表
+        </button>
+        <button class="btn btn-warning" onclick="downloadCSV('zip')">
+            <i class="fas fa-file-archive"></i> 全部打包
+        </button>
+    </div>
+</div>
+```
+
+### 7.2 JavaScript Functions
+- `initializeForm()` - Set up event listeners
+- `adjustCount(level, delta)` - Handle personnel count changes
+- `updatePersonnelForms(level, oldCount, newCount)` - Dynamically update forms
+- `validateSelection()` - Real-time constraint checking
+- `submitSchedule()` - AJAX submission
+- `checkProgress()` - Poll for GA progress updates
+- `displayResults()` - Show schedule or errors
+- `downloadCSV(format)` - Trigger specific format download
+- `showDownloadOptions()` - Display download section after success
+
+## 8. Deployment to Render
+
+[Previous deployment configuration remains the same...]
+
+## 9. Testing Strategy
+
+### 9.1 Unit Tests
+- Test genetic algorithm components (initialization, crossover, mutation)
+- Test fitness function calculations
+- Test R1-focused initialization strategy
+- Test dynamic population size calculation
+- Test multiple export format generation
+
+### 9.2 Integration Tests
+- Full workflow from input to CSV generation
+- GA convergence testing with varying personnel counts
+- Performance benchmarking for different problem sizes
+- Export format validation
+
+### 9.3 Test Cases
+
+#### 9.3.1 Dynamic Personnel Test
+```python
+def test_dynamic_personnel_adjustment():
+    """Test GA adaptation to different personnel counts"""
+    test_cases = [
+        {"R1": 3, "R2": 4, "R3": 3, "R4": 4},  # Smaller
+        {"R1": 5, "R2": 6, "R3": 4, "R4": 6},  # Default
+        {"R1": 8, "R2": 8, "R3": 6, "R4": 8},  # Larger
+    ]
+    
+    for case in test_cases:
+        scheduler = GeneticScheduler(case, rules)
+        assert scheduler.population_size > 0
+        # Verify population scales with complexity
+```
+
+#### 9.3.2 Export Format Tests
+```python
+def test_csv_export_formats():
+    """Verify all export formats generate correctly"""
+    exporter = ExportHandler(test_schedule, test_personnel)
+    
+    # Test basic format
+    basic_csv = exporter.generate_basic_csv()
+    assert "Week,Day,Time" in basic_csv
+    
+    # Test personal format
+    personal_csv = exporter.generate_personal_csv()
+    assert "人員,級別,輪訓單位" in personal_csv
+    
+    # Test statistics format
+    stats_csv = exporter.generate_statistics_csv()
+    assert "統計項目,數值" in stats_csv
+```
+
+### 9.4 Performance Metrics
+
+- **Convergence Rate**: % of runs finding valid solution within allocated generations
+- **Scaling Efficiency**: Performance degradation with increased personnel
+- **Export Speed**: Time to generate all CSV formats
+- **Memory Usage**: Peak memory with maximum personnel configuration
+
+## 10. Future Enhancements
+
+- Save/load personnel configurations
+- Template system for common setups
+- Batch scheduling for multiple weeks
+- Import previous schedules for continuity
+- Mobile-responsive interface improvements
+
+## 11. Success Metrics
+
+- Schedule generation time < 180 seconds (up to 10 personnel per level)
+- 100% constraint satisfaction for feasible problems
+- Export generation < 20 seconds for all formats
+- Intuitive UI requiring no training
+- Support for 1-10 personnel per level without performance degradation

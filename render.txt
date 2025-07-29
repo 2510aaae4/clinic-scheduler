@@ -1,0 +1,226 @@
+# Render 部署完整指南 - 門診排班系統
+
+## 一、前置準備
+
+### 1.1 註冊 Render 帳號
+1. 前往 https://render.com
+2. 使用 GitHub 帳號註冊（推薦）或使用 Email 註冊
+3. 驗證 Email
+
+### 1.2 準備專案檔案
+確保您的本地專案包含以下必要檔案：
+
+```
+clinic-scheduler/
+├── app.py                    # 主程式入口
+├── requirements.txt          # Python 套件清單
+├── runtime.txt              # Python 版本指定
+├── Procfile                 # 啟動指令
+├── render.yaml              # Render 部署配置
+├── config/                  # 設定檔資料夾
+│   ├── __init__.py
+│   └── settings.py          # 應用程式設定
+├── data/                    # 資料檔案夾
+│   ├── rules.json          # 排班規則檔
+│   └── temp/               # 暫存資料夾（可為空）
+├── modules/                 # 核心模組
+│   ├── __init__.py
+│   ├── data_handler.py
+│   ├── export_handler.py
+│   ├── fitness_evaluator.py
+│   ├── genetic_scheduler_v2.py
+│   ├── r1_scheduler.py
+│   └── validators.py
+├── static/                  # 靜態檔案
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── main.js
+│       ├── r1r4-preview.js
+│       └── schedule-display.js
+├── templates/               # HTML 模板
+│   ├── base.html
+│   ├── index.html
+│   └── results.html
+└── tests/                   # 測試檔案（可選）
+    ├── __init__.py
+    └── test_scheduler.py
+```
+
+## 二、上傳至 GitHub（必要步驟）
+
+### 2.1 創建 GitHub Repository
+1. 登入 GitHub
+2. 點擊右上角 "+" → "New repository"
+3. Repository name: `clinic-scheduler`
+4. 設為 Private 或 Public（依您的需求）
+5. 不要勾選 "Initialize this repository with a README"
+6. 點擊 "Create repository"
+
+### 2.2 上傳程式碼
+在您的本地專案目錄執行：
+
+```bash
+# 初始化 git（如果尚未初始化）
+git init
+
+# 添加所有檔案
+git add .
+
+# 提交
+git commit -m "Initial commit"
+
+# 添加遠端 repository
+git remote add origin https://github.com/YOUR_USERNAME/clinic-scheduler.git
+
+# 推送到 GitHub
+git push -u origin main
+```
+
+### 2.3 確認上傳內容
+確保以下檔案**已上傳**：
+- ✅ app.py
+- ✅ requirements.txt
+- ✅ runtime.txt
+- ✅ Procfile
+- ✅ render.yaml
+- ✅ 所有 config/ 目錄下的檔案
+- ✅ 所有 modules/ 目錄下的檔案
+- ✅ 所有 static/ 目錄下的檔案
+- ✅ 所有 templates/ 目錄下的檔案
+- ✅ data/rules.json
+
+確保以下內容**不要上傳**（已在 .gitignore 中）：
+- ❌ venv/ 資料夾
+- ❌ __pycache__/ 資料夾
+- ❌ .env 檔案
+- ❌ *.pyc 檔案
+- ❌ data/temp/ 下的 CSV 檔案
+
+## 三、在 Render 上部署
+
+### 3.1 連接 GitHub 到 Render
+1. 登入 Render Dashboard
+2. 點擊 "New +" → "Web Service"
+3. 選擇 "Build and deploy from a Git repository"
+4. 點擊 "Connect GitHub"
+5. 授權 Render 存取您的 GitHub 帳號
+6. 選擇要部署的 repository：`clinic-scheduler`
+
+### 3.2 配置部署設定
+Render 會自動讀取 `render.yaml`，但您仍需確認以下設定：
+
+1. **Name**: clinic-scheduler（或您想要的名稱）
+2. **Region**: Oregon (US West)（免費方案）
+3. **Branch**: main（或您的主分支名稱）
+4. **Root Directory**: 留空（如果 clinic-scheduler 是根目錄）
+   - 如果您的專案結構是 `Schedule/clinic-scheduler/`，則填入 `clinic-scheduler`
+5. **Environment**: Python
+6. **Build Command**: `pip install -r requirements.txt`
+7. **Start Command**: `gunicorn app:app`
+
+### 3.3 環境變數設定
+點擊 "Advanced" 展開進階設定，添加以下環境變數：
+
+- **PYTHON_VERSION**: 3.10.0
+- **FLASK_ENV**: production
+
+### 3.4 選擇方案
+- 選擇 "Free" 方案（每月 750 小時免費運行時間）
+- 注意：免費方案的限制
+  - 15 分鐘無活動後會休眠
+  - 每月 750 小時運行時間
+  - 512MB RAM
+  - 0.1 CPU
+
+### 3.5 部署
+1. 點擊 "Create Web Service"
+2. Render 會自動開始部署流程
+3. 等待部署完成（約 5-10 分鐘）
+
+## 四、驗證部署
+
+### 4.1 檢查部署狀態
+1. 在 Render Dashboard 查看部署日誌
+2. 確認沒有錯誤訊息
+3. 等待狀態變為 "Live"
+
+### 4.2 訪問應用程式
+1. 部署完成後，Render 會提供一個 URL
+2. 格式通常為：`https://clinic-scheduler-xxxx.onrender.com`
+3. 點擊 URL 訪問您的應用程式
+
+### 4.3 測試功能
+1. 上傳測試用的人員資料 CSV
+2. 執行排班
+3. 下載結果檔案
+4. 確認所有功能正常運作
+
+## 五、常見問題排除
+
+### 5.1 部署失敗
+- 檢查 requirements.txt 是否包含所有必要套件
+- 確認 Python 版本是否正確（runtime.txt）
+- 查看 Render 的部署日誌找出錯誤
+
+### 5.2 應用程式無法啟動
+- 確認 Procfile 內容正確：`web: gunicorn app:app`
+- 檢查 app.py 是否在根目錄
+- 確認 PORT 環境變數使用正確（Render 會自動設定）
+
+### 5.3 靜態檔案無法載入
+- 確認 static/ 資料夾結構正確
+- 檢查 app.py 中的靜態檔案路徑設定
+
+### 5.4 data/temp 資料夾問題
+- Render 的檔案系統是暫時的，重新部署會清空
+- 確保程式碼能處理 temp 資料夾不存在的情況
+- 考慮使用外部儲存服務儲存持久資料
+
+## 六、更新部署
+
+### 6.1 自動部署
+如果在 render.yaml 中設定了 `autoDeploy: true`：
+1. 推送更新到 GitHub main 分支
+2. Render 會自動偵測並重新部署
+
+### 6.2 手動部署
+1. 在 Render Dashboard 中找到您的服務
+2. 點擊 "Manual Deploy"
+3. 選擇 "Deploy latest commit"
+
+## 七、進階設定（選用）
+
+### 7.1 自訂網域
+1. 在 Render Dashboard → Settings → Custom Domains
+2. 添加您的網域
+3. 設定 DNS 記錄指向 Render
+
+### 7.2 升級方案
+如需更好的效能：
+1. 考慮升級到付費方案
+2. 獲得更多 RAM 和 CPU
+3. 避免休眠問題
+
+### 7.3 監控設定
+1. 在 Render Dashboard 查看 Metrics
+2. 設定警報通知
+3. 監控應用程式效能
+
+## 八、重要提醒
+
+1. **資料安全**：不要在程式碼中硬編碼敏感資訊
+2. **檔案持久性**：Render 免費方案不保證檔案持久性
+3. **休眠問題**：免費方案會在閒置後休眠，首次訪問可能較慢
+4. **資源限制**：注意免費方案的 RAM 和 CPU 限制
+5. **定期備份**：重要資料請另外備份
+
+## 九、支援資源
+
+- Render 官方文件：https://render.com/docs
+- Render 社群論壇：https://community.render.com
+- 專案問題回報：在 GitHub repository 開 issue
+
+---
+
+完成以上步驟後，您的門診排班系統就成功部署到 Render 了！

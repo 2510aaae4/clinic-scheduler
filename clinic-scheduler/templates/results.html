@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}診所排班系統 - 排班結果{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-calendar-check"></i> 排班結果
+        </h2>
+        
+        <!-- Summary Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line"></i> 排班摘要
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="text-primary">{{ statistics.total_personnel }}</h3>
+                            <p class="text-muted">總人員數</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="text-success">{{ "%.1f"|format(statistics.coverage_rate) }}%</h3>
+                            <p class="text-muted">門診覆蓋率</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="text-info">{{ "%.1f"|format(statistics.health_check_coverage) }}%</h3>
+                            <p class="text-muted">體檢覆蓋率</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h3 class="text-warning">{{ statistics.total_clinic_slots }}</h3>
+                            <p class="text-muted">總門診時段</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Download Options -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-download"></i> 下載選項
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-primary w-100" onclick="downloadFile('basic', '{{ files.basic }}')">
+                            <i class="fas fa-table"></i><br>
+                            基本排班表<br>
+                            <small>傳統週視圖格式</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-info w-100" onclick="downloadFile('personal', '{{ files.personal }}')">
+                            <i class="fas fa-user"></i><br>
+                            個人排班表<br>
+                            <small>以人員為中心的視圖</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-success w-100" onclick="downloadFile('statistics', '{{ files.statistics }}')">
+                            <i class="fas fa-chart-bar"></i><br>
+                            統計報表<br>
+                            <small>詳細統計分析</small>
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-warning w-100" onclick="downloadZip('{{ task_id }}')">
+                            <i class="fas fa-file-archive"></i><br>
+                            全部打包<br>
+                            <small>ZIP 壓縮檔</small>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Schedule Preview -->
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt"></i> 排班預覽
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs" id="weekTabs" role="tablist">
+                    {% for week in range(1, 6) %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if week == 1 %}active{% endif %}" 
+                                id="week{{ week }}-tab" 
+                                data-bs-toggle="tab" 
+                                data-bs-target="#week{{ week }}" 
+                                type="button" 
+                                role="tab">
+                            第 {{ week }} 週
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                <div class="tab-content" id="weekTabsContent">
+                    {% for week in range(1, 6) %}
+                    <div class="tab-pane fade {% if week == 1 %}show active{% endif %}" 
+                         id="week{{ week }}" 
+                         role="tabpanel">
+                        <div class="table-responsive mt-3">
+                            <table class="table table-bordered table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>時段</th>
+                                        {% for room in clinic_rooms + health_check_rooms %}
+                                        <th class="text-center">{{ room }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% set week_key = "W" ~ week %}
+                                    {% if week_key in schedule %}
+                                        {% for day in weekdays %}
+                                            {% for time in time_slots %}
+                                            <tr>
+                                                <td>
+                                                    <strong>{{ day }}</strong><br>
+                                                    <small>{{ "上午" if time == "Morning" else "下午" }}</small>
+                                                </td>
+                                                {% for room in clinic_rooms + health_check_rooms %}
+                                                <td class="text-center">
+                                                    {% if schedule[week_key][day][time][room] %}
+                                                        <span class="badge bg-primary">
+                                                            {{ schedule[week_key][day][time][room] }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-muted">-</span>
+                                                    {% endif %}
+                                                </td>
+                                                {% endfor %}
+                                            </tr>
+                                            {% endfor %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Personnel Summary -->
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-users"></i> 人員排班統計
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>人員</th>
+                                <th>級別</th>
+                                <th>輪訓單位</th>
+                                <th>門診數</th>
+                                <th>體檢數</th>
+                                <th>總排班數</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for person_id, count in statistics.assignments_per_person.items() %}
+                            <tr>
+                                <td>{{ person_id }}</td>
+                                <td>
+                                    {% if person_id.startswith('R1') %}
+                                        <span class="badge bg-info">R1</span>
+                                    {% elif person_id.startswith('R2') %}
+                                        <span class="badge bg-success">R2</span>
+                                    {% elif person_id.startswith('R3') %}
+                                        <span class="badge bg-warning">R3</span>
+                                    {% elif person_id.startswith('R4') %}
+                                        <span class="badge bg-danger">R4</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ personnel_info[person_id].rotation_unit if person_id in personnel_info else '-' }}</td>
+                                <td>{{ person_stats[person_id].clinic if person_id in person_stats else 0 }}</td>
+                                <td>{{ person_stats[person_id].health_check if person_id in person_stats else 0 }}</td>
+                                <td><strong>{{ count }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Back Button -->
+        <div class="text-center my-4">
+            <a href="/" class="btn btn-secondary btn-lg">
+                <i class="fas fa-arrow-left"></i> 返回設定頁面
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function downloadFile(format, filename) {
+    window.location.href = `/api/download/${format}/${filename}`;
+}
+
+function downloadZip(taskId) {
+    window.location.href = `/api/download/zip/${taskId}`;
+}
+</script>
+{% endblock %}

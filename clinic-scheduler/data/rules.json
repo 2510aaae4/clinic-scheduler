@@ -1,0 +1,216 @@
+{
+    "unit_constraints": {
+        "健康": {
+            "min_clinics": 0,
+            "max_clinics": 2,
+            "health_check_required": true,
+            "description": "主要負責體檢，門診數量有限"
+        },
+        "急診": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "preferred_time": "Morning",
+            "description": "急診輪訓，需保留時間處理急診業務"
+        },
+        "內科病房": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "一般門診負擔"
+        },
+        "兒科病房": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "一般門診負擔"
+        },
+        "精神1": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "精神科訓練"
+        },
+        "精神2": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "精神科訓練"
+        },
+        "社區1": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "社區醫學訓練"
+        },
+        "社區2": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "社區醫學訓練"
+        },
+        "婦產病房": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "一般門診負擔"
+        },
+        "婦產門診": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "婦產科門診"
+        },
+        "外科病房": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "外科病房輪訓"
+        },
+        "眼科門診": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "眼科門診"
+        },
+        "皮膚門診": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "皮膚科門診"
+        },
+        "神內門診": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "神經內科門診"
+        },
+        "復健門診": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "復健科門診"
+        },
+        "ENT門診": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "耳鼻喉科門診"
+        },
+        "家庭醫業": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "家庭醫學門診"
+        },
+        "放射": {
+            "min_clinics": 0,
+            "max_clinics": 2,
+            "description": "放射科訓練，門診時間有限"
+        },
+        "CR": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "心臟復健"
+        },
+        "斗六1": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "斗六分院支援"
+        },
+        "斗六2": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "斗六分院支援"
+        },
+        "泌尿門診": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "泌尿科門診"
+        },
+        "糖尿病衛教": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "糖尿病衛教門診"
+        },
+        "安寧1": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "安寧療護訓練"
+        },
+        "安寧2": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "安寧療護訓練"
+        },
+        "老醫門診": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "老年醫學門診"
+        },
+        "內科門診": {
+            "min_clinics": 2,
+            "max_clinics": 4,
+            "description": "一般內科門診"
+        },
+        "睡眠門診": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "睡眠醫學門診"
+        },
+        "旅遊門診": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "旅遊醫學門診"
+        },
+        "骨鬆門診": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "骨質疏鬆門診"
+        },
+        "減重門診": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "減重門診"
+        },
+        "疼痛科": {
+            "min_clinics": 1,
+            "max_clinics": 3,
+            "description": "疼痛科門診"
+        },
+        "其他": {
+            "min_clinics": 2,
+            "max_clinics": 5,
+            "description": "彈性安排"
+        }
+    },
+    "general_rules": {
+        "max_clinics_per_day": 2,
+        "max_clinics_per_week": 8,
+        "min_rest_between_clinics": 0,
+        "health_check_priority": ["R1", "R2", "R3", "R4"],
+        "tuesday_teaching_exemption": true
+    },
+    "room_preferences": {
+        "內科門診": ["4201", "4202", "4203"],
+        "外科病房": ["4204", "4205"],
+        "兒科門診": ["4207", "4208"],
+        "婦產門診": ["4209", "4213"],
+        "其他": ["4218"]
+    },
+    "time_preferences": {
+        "急診": {
+            "preferred": ["Morning"],
+            "weight": 1.5
+        },
+        "兒科門診": {
+            "preferred": ["Morning"],
+            "weight": 1.2
+        }
+    },
+    "conflict_rules": [
+        {
+            "description": "同一人不能同時在多個診間",
+            "type": "hard_constraint"
+        },
+        {
+            "description": "健康輪訓人員優先分配體檢",
+            "type": "soft_constraint",
+            "weight": 2.0
+        },
+        {
+            "description": "R4週二教學不排門診",
+            "type": "hard_constraint"
+        }
+    ],
+    "optimization_weights": {
+        "coverage": 0.4,
+        "distribution": 0.3,
+        "preferences": 0.2,
+        "health_check": 0.1
+    }
+}

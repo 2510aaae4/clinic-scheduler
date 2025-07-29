@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}診所排班系統 - 排班設定{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class="fas fa-users"></i> 排班設定
+        </h2>
+        
+        <!-- Personnel Count Controls -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-cog"></i> 人員配置設定
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">R1 人數：</label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustCount('R1', -1)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="text" class="form-control text-center" id="r1-count" value="5" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustCount('R1', 1)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">R2 人數：</label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustCount('R2', -1)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="text" class="form-control text-center" id="r2-count" value="6" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustCount('R2', 1)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">R3 人數：</label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustCount('R3', -1)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="text" class="form-control text-center" id="r3-count" value="4" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustCount('R3', 1)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">R4 人數：</label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustCount('R4', -1)">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="text" class="form-control text-center" id="r4-count" value="6" readonly>
+                            <button class="btn btn-outline-secondary" type="button" onclick="adjustCount('R4', 1)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Personnel Forms -->
+        <form id="scheduleForm">
+            <!-- R1 Personnel -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-md"></i> R1 人員設定
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="r1-personnel" class="row">
+                        <!-- R1 forms will be dynamically generated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- R2 Personnel -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-md"></i> R2 人員設定
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="r2-personnel" class="row">
+                        <!-- R2 forms will be dynamically generated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- R3 Personnel -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-md"></i> R3 人員設定
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="r3-personnel" class="row">
+                        <!-- R3 forms will be dynamically generated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- R4 Personnel -->
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-md"></i> R4 人員設定
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="r4-personnel" class="row">
+                        <!-- R4 forms will be dynamically generated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="text-center mb-4">
+                <button type="button" class="btn btn-primary btn-lg me-2" onclick="generateSchedule()">
+                    <i class="fas fa-calendar-check"></i> 生成排班表
+                </button>
+                <button type="button" class="btn btn-secondary btn-lg" onclick="resetForm()">
+                    <i class="fas fa-redo"></i> 重設表單
+                </button>
+            </div>
+        </form>
+        
+        <!-- Results Section -->
+        <div id="resultsSection" style="display: none;">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle"></i> 排班完成
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="resultMessage" class="alert alert-success"></div>
+                    
+                    <!-- Download Options -->
+                    <div class="download-section mt-4">
+                        <h5>下載選項：</h5>
+                        <div class="row">
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-primary w-100" onclick="downloadCSV('basic')">
+                                    <i class="fas fa-download"></i> 基本排班表
+                                </button>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-info w-100" onclick="downloadCSV('personal')">
+                                    <i class="fas fa-user"></i> 個人排班表
+                                </button>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-success w-100" onclick="downloadCSV('statistics')">
+                                    <i class="fas fa-chart-bar"></i> 統計報表
+                                </button>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <button class="btn btn-warning w-100" onclick="downloadAll()">
+                                    <i class="fas fa-file-archive"></i> 全部打包
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Schedule Preview -->
+                    <div id="schedulePreview" class="mt-4">
+                        <!-- Schedule preview will be displayed here -->
+                    </div>
+                    
+                    <!-- Rules Validation -->
+                    <div id="rulesValidation" class="mt-4">
+                        <!-- Rules validation results will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Error Section -->
+        <div id="errorSection" style="display: none;">
+            <div class="alert alert-danger">
+                <h5><i class="fas fa-exclamation-triangle"></i> 排班失敗</h5>
+                <div id="errorMessage"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Validation Messages -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="validationToast" class="toast" role="alert">
+        <div class="toast-header">
+            <strong class="me-auto">驗證訊息</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="validationMessage">
+            <!-- Validation messages will appear here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/r1r4-preview.js') }}"></script>
+<script src="{{ url_for('static', filename='js/schedule-display.js') }}"></script>
+<script>
+    // Global variables
+    let currentTaskId = null;
+    let scheduleData = null;
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeForms();
+    });
+</script>
+{% endblock %}
